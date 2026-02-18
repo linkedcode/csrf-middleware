@@ -4,7 +4,7 @@
   "type": "library",
   "autoload": {
     "psr-4": {
-      "Linkedcode\\Middleware\\Csrf": "src/"
+      "Linkedcode\\Middleware\\Csrf\\": "src/"
     }
   },
   "authors": [
