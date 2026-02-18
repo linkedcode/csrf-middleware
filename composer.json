@@ -1,10 +1,10 @@
 {
   "name": "linkedcode/csrf-middleware",
-  "description": "CsrfMiddleware compatible con SessionMiddleware de Odan",
+  "description": "CSRF middleware compatible con SessionMiddleware de Odan",
   "type": "library",
   "autoload": {
     "psr-4": {
-      "Linkedcode\\Middleware\\": "src/"
+      "Linkedcode\\Middleware\\Csrf": "src/"
     }
   },
   "authors": [

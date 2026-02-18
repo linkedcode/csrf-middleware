@@ -1,45 +1,37 @@
 <?php
 
-namespace Linkedcode\Middleware;
+namespace Linkedcode\Middleware\Csrf;
 
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
-use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
-use Odan\Session\SessionInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class CsrfMiddleware implements MiddlewareInterface
+final class CsrfMiddleware implements MiddlewareInterface
 {
-    private SessionInterface $session;
-    private string $keyName = 'csrf_name';
-    private string $keyValue = 'csrf_value';
-
     public function __construct(
-        SessionInterface $session
-    ) {
-        $this->session = $session;
-    }
+        private CsrfTokenManager $manager
+    ) {}
 
-    public function process(Request $request, RequestHandler $handler): Response
-    {
-        if (!$this->session->has($this->keyName)) {
-            $this->session->set($this->keyName, 'csrf_token_' . bin2hex(random_bytes(8)));
+    public function process(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $handler
+    ): ResponseInterface {
+
+        $method = strtoupper($request->getMethod());
+
+        if (!in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
+            return $handler->handle($request);
         }
 
-        if (!$this->session->has($this->keyValue)) {
-            $this->session->set($this->keyValue, bin2hex(random_bytes(32)));
-        }
+        $token =
+            $request->getParsedBody()['_csrf']
+            ?? $request->getHeaderLine('X-CSRF-Token')
+            ?? null;
 
-        if (in_array($request->getMethod(), ['POST', 'PUT', 'DELETE', 'PATCH'])) {
-            $name = $request->getParsedBody()[$this->session->get($this->keyName)] ?? '';
-            $value = $request->getParsedBody()[$this->keyValue] ?? '';
-            $valid = hash_equals($this->session->get($this->keyValue), $value);
+        $isValid = $token && $this->manager->validate($request, $token);
 
-            $request = $request->withAttribute("csrf_status", $valid);
-        }
-
-        $request = $request->withAttribute($this->keyName, $this->session->get($this->keyName));
-        $request = $request->withAttribute($this->keyValue, $this->session->get($this->keyValue));
+        $request = $request->withAttribute('csrf_valid', $isValid);
 
         return $handler->handle($request);
     }
