@@ -1,11 +1,10 @@
 <?php
 
-namespace Linkedcode\Middleware\Csrf;
+namespace Linkedcode\Middleware\Csrf\Resolver;
 
 use Linkedcode\Middleware\Csrf\Contracts\SecretResolver;
 use Linkedcode\Middleware\Csrf\Contracts\SessionIdentifierResolver;
 use Psr\Http\Message\ServerRequestInterface;
-
 
 final class DerivedSecretResolver implements SecretResolver
 {

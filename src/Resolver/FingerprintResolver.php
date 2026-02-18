@@ -1,6 +1,6 @@
 <?php
 
-use Linkedcode\Middleware\Csrf\Contracts\FingerprintResolverInterface;
+use Linkedcode\Middleware\Csrf\Contracts\FingerprintResolver as FingerprintResolverInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 final class FingerprintResolver implements FingerprintResolverInterface
