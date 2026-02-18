@@ -1,19 +1,20 @@
 {
-    "name": "linkedcode/csrf-middleware",
-    "description": "CsrfMiddleware compatible con SessionMiddleware de Odan",
-    "type": "library",
-    "autoload": {
-        "psr-4": {
-            "Linkedcode\\CsrfMiddleware\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Nicolas H. Kosciuk",
-            "email": "nhk@linkedcode.com"
-        }
-    ],
+  "name": "linkedcode/csrf-middleware",
+  "description": "CsrfMiddleware compatible con SessionMiddleware de Odan",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Linkedcode\\Middleware\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Nicolas H. Kosciuk",
+      "email": "nhk@linkedcode.com"
+    }
+  ],
   "require": {
-    "php": ">=8.4"
+    "php": ">=8.4",
+    "odan/session": "^6.5"
   }
 }
