@@ -71,13 +71,13 @@ final class WebStrategyTest extends TestCase
         $this->assertNull($strategy->onFailure($request));
     }
 
-    public function testUnauthenticatedOnlyReturns403ForAnonymousRequest(): void
+    public function testUnauthenticatedOnlyReturns403WhenAuthAttributeMissing(): void
     {
         $factory  = new Psr17Factory();
         $strategy = new WebStrategy(
             $factory,
             failMode: CsrfFailMode::UnauthenticatedOnly,
-            isAuthenticated: fn () => false,
+            onAuthenticatedFailure: fn () => $factory->createResponse(302)->withHeader('Location', '/dashboard'),
         );
         $request = new ServerRequest('POST', '/');
 
@@ -86,16 +86,16 @@ final class WebStrategyTest extends TestCase
         $this->assertSame(403, $response->getStatusCode());
     }
 
-    public function testUnauthenticatedOnlyDelegatesToCallbackForAuthenticatedRequest(): void
+    public function testUnauthenticatedOnlyDelegatesToCallbackWhenAuthAttributePresent(): void
     {
         $factory  = new Psr17Factory();
         $strategy = new WebStrategy(
             $factory,
             failMode: CsrfFailMode::UnauthenticatedOnly,
-            isAuthenticated: fn () => true,
+            authRequestAttribute: 'user_id',
             onAuthenticatedFailure: fn () => $factory->createResponse(302)->withHeader('Location', '/dashboard'),
         );
-        $request = new ServerRequest('POST', '/');
+        $request = (new ServerRequest('POST', '/'))->withAttribute('user_id', 42);
 
         $response = $strategy->onFailure($request);
 
@@ -109,10 +109,9 @@ final class WebStrategyTest extends TestCase
         $strategy = new WebStrategy(
             $factory,
             failMode: CsrfFailMode::UnauthenticatedOnly,
-            isAuthenticated: fn () => true,
             onAuthenticatedFailure: fn () => null,
         );
-        $request = new ServerRequest('POST', '/');
+        $request = (new ServerRequest('POST', '/'))->withAttribute('user_id', 42);
 
         $response = $strategy->onFailure($request);
 

@@ -20,17 +20,20 @@ final class WebStrategy implements CsrfStrategyInterface
     public const ATTRIBUTE = 'csrf_valid';
 
     /**
-     * @param (callable(ServerRequestInterface): bool)|null $isAuthenticated
-     *        Required when $failMode is UnauthenticatedOnly.
+     * @param string $authRequestAttribute Request attribute set by an upstream auth
+     *        middleware (e.g. 'user_id') used to tell authenticated requests apart
+     *        when $failMode is UnauthenticatedOnly. Requires CsrfMiddleware to run
+     *        after that auth middleware in the stack.
      * @param (callable(ServerRequestInterface): ?ResponseInterface)|null $onAuthenticatedFailure
-     *        Called when $failMode is UnauthenticatedOnly and $isAuthenticated
-     *        returns true. Falling through to null keeps the default 403.
+     *        Called when $failMode is UnauthenticatedOnly and $authRequestAttribute
+     *        is present/truthy on the request. Falling through to null keeps the
+     *        default 403.
      */
     public function __construct(
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly string $failureMessage = 'CSRF token validation failed.',
         private readonly CsrfFailMode $failMode = CsrfFailMode::Never,
-        private readonly mixed $isAuthenticated = null,
+        private readonly string $authRequestAttribute = 'user_id',
         private readonly mixed $onAuthenticatedFailure = null,
     ) {}
 
@@ -46,12 +49,10 @@ final class WebStrategy implements CsrfStrategyInterface
         }
 
         if ($this->failMode === CsrfFailMode::UnauthenticatedOnly
-            && $this->isAuthenticated !== null
-            && ($this->isAuthenticated)($request)
+            && $request->getAttribute($this->authRequestAttribute)
+            && $this->onAuthenticatedFailure !== null
         ) {
-            $response = $this->onAuthenticatedFailure !== null
-                ? ($this->onAuthenticatedFailure)($request)
-                : null;
+            $response = ($this->onAuthenticatedFailure)($request);
 
             if ($response !== null) {
                 return $response;
