@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Linkedcode\Middleware\Csrf\Tests\Strategy;
 
 use Linkedcode\Middleware\Csrf\Strategy\ApiStrategy;
+use Linkedcode\Middleware\Csrf\Strategy\CsrfFailMode;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
@@ -63,5 +64,36 @@ final class ApiStrategyTest extends TestCase
         $body     = json_decode((string) $response->getBody(), true);
 
         $this->assertSame('Token expired', $body['message']);
+    }
+
+    public function testUnauthenticatedOnlyDelegatesToCallbackWhenAuthAttributePresent(): void
+    {
+        $factory  = new Psr17Factory();
+        $strategy = new ApiStrategy(
+            $factory,
+            failMode: CsrfFailMode::UnauthenticatedOnly,
+            onAuthenticatedFailure: fn () => $factory->createResponse(401)
+                ->withHeader('Content-Type', 'application/json'),
+        );
+        $request = (new ServerRequest('POST', '/api/resource'))->withAttribute('user_id', 42);
+
+        $response = $strategy->onFailure($request);
+
+        $this->assertSame(401, $response->getStatusCode());
+    }
+
+    public function testUnauthenticatedOnlyReturns403WhenAuthAttributeMissing(): void
+    {
+        $factory  = new Psr17Factory();
+        $strategy = new ApiStrategy(
+            $factory,
+            failMode: CsrfFailMode::UnauthenticatedOnly,
+            onAuthenticatedFailure: fn () => $factory->createResponse(401),
+        );
+        $request = new ServerRequest('POST', '/api/resource');
+
+        $response = $strategy->onFailure($request);
+
+        $this->assertSame(403, $response->getStatusCode());
     }
 }

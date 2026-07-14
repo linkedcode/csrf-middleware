@@ -17,6 +17,8 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class WebStrategy implements CsrfStrategyInterface
 {
+    use AuthAwareCsrfFailureTrait;
+
     public const ATTRIBUTE = 'csrf_valid';
 
     /**
@@ -44,19 +46,13 @@ final class WebStrategy implements CsrfStrategyInterface
 
     public function onFailure(ServerRequestInterface $request): ResponseInterface|null
     {
-        if ($this->failMode === CsrfFailMode::Never) {
+        if ($this->isNeverFailMode()) {
             return null;
         }
 
-        if ($this->failMode === CsrfFailMode::UnauthenticatedOnly
-            && $request->getAttribute($this->authRequestAttribute)
-            && $this->onAuthenticatedFailure !== null
-        ) {
-            $response = ($this->onAuthenticatedFailure)($request);
-
-            if ($response !== null) {
-                return $response;
-            }
+        $delegated = $this->delegatedAuthenticatedFailureResponse($request);
+        if ($delegated !== null) {
+            return $delegated;
         }
 
         $response = $this->responseFactory->createResponse(403);
