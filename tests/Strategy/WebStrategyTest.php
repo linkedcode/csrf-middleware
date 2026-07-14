@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Linkedcode\Middleware\Csrf\Tests\Strategy;
 
+use Linkedcode\Middleware\Csrf\Strategy\CsrfFailMode;
 use Linkedcode\Middleware\Csrf\Strategy\WebStrategy;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\ServerRequest;
@@ -16,7 +17,7 @@ final class WebStrategyTest extends TestCase
     protected function setUp(): void
     {
         $factory = new Psr17Factory();
-        $this->strategy = new WebStrategy($factory, failFast: true);
+        $this->strategy = new WebStrategy($factory, failMode: CsrfFailMode::Always);
     }
 
     public function testOnSuccessAddsAttribute(): void
@@ -54,7 +55,7 @@ final class WebStrategyTest extends TestCase
     public function testOnFailureBodyContainsMessage(): void
     {
         $factory  = new Psr17Factory();
-        $strategy = new WebStrategy($factory, 'Custom error message', failFast: true);
+        $strategy = new WebStrategy($factory, 'Custom error message', failMode: CsrfFailMode::Always);
         $request  = new ServerRequest('POST', '/');
         $response = $strategy->onFailure($request);
 
@@ -68,5 +69,53 @@ final class WebStrategyTest extends TestCase
         $request  = new ServerRequest('POST', '/');
 
         $this->assertNull($strategy->onFailure($request));
+    }
+
+    public function testUnauthenticatedOnlyReturns403ForAnonymousRequest(): void
+    {
+        $factory  = new Psr17Factory();
+        $strategy = new WebStrategy(
+            $factory,
+            failMode: CsrfFailMode::UnauthenticatedOnly,
+            isAuthenticated: fn () => false,
+        );
+        $request = new ServerRequest('POST', '/');
+
+        $response = $strategy->onFailure($request);
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
+    public function testUnauthenticatedOnlyDelegatesToCallbackForAuthenticatedRequest(): void
+    {
+        $factory  = new Psr17Factory();
+        $strategy = new WebStrategy(
+            $factory,
+            failMode: CsrfFailMode::UnauthenticatedOnly,
+            isAuthenticated: fn () => true,
+            onAuthenticatedFailure: fn () => $factory->createResponse(302)->withHeader('Location', '/dashboard'),
+        );
+        $request = new ServerRequest('POST', '/');
+
+        $response = $strategy->onFailure($request);
+
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame('/dashboard', $response->getHeaderLine('Location'));
+    }
+
+    public function testUnauthenticatedOnlyFallsBackTo403WhenCallbackReturnsNull(): void
+    {
+        $factory  = new Psr17Factory();
+        $strategy = new WebStrategy(
+            $factory,
+            failMode: CsrfFailMode::UnauthenticatedOnly,
+            isAuthenticated: fn () => true,
+            onAuthenticatedFailure: fn () => null,
+        );
+        $request = new ServerRequest('POST', '/');
+
+        $response = $strategy->onFailure($request);
+
+        $this->assertSame(403, $response->getStatusCode());
     }
 }

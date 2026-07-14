@@ -13,16 +13,25 @@ use Psr\Http\Message\ServerRequestInterface;
  * Web (HTML form) strategy.
  *
  * On success : attaches 'csrf_valid' = true attribute to the request.
- * On failure : returns an HTTP 403 response with a plain-text or HTML body.
+ * On failure : behavior depends on $failMode (see CsrfFailMode).
  */
 final class WebStrategy implements CsrfStrategyInterface
 {
     public const ATTRIBUTE = 'csrf_valid';
 
+    /**
+     * @param (callable(ServerRequestInterface): bool)|null $isAuthenticated
+     *        Required when $failMode is UnauthenticatedOnly.
+     * @param (callable(ServerRequestInterface): ?ResponseInterface)|null $onAuthenticatedFailure
+     *        Called when $failMode is UnauthenticatedOnly and $isAuthenticated
+     *        returns true. Falling through to null keeps the default 403.
+     */
     public function __construct(
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly string $failureMessage = 'CSRF token validation failed.',
-        private readonly bool $failFast = false
+        private readonly CsrfFailMode $failMode = CsrfFailMode::Never,
+        private readonly mixed $isAuthenticated = null,
+        private readonly mixed $onAuthenticatedFailure = null,
     ) {}
 
     public function onSuccess(ServerRequestInterface $request): ServerRequestInterface
@@ -32,8 +41,21 @@ final class WebStrategy implements CsrfStrategyInterface
 
     public function onFailure(ServerRequestInterface $request): ResponseInterface|null
     {
-        if (!$this->failFast) {
+        if ($this->failMode === CsrfFailMode::Never) {
             return null;
+        }
+
+        if ($this->failMode === CsrfFailMode::UnauthenticatedOnly
+            && $this->isAuthenticated !== null
+            && ($this->isAuthenticated)($request)
+        ) {
+            $response = $this->onAuthenticatedFailure !== null
+                ? ($this->onAuthenticatedFailure)($request)
+                : null;
+
+            if ($response !== null) {
+                return $response;
+            }
         }
 
         $response = $this->responseFactory->createResponse(403);
