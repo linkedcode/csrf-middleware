@@ -23,4 +23,12 @@ enum CsrfFailMode
      * friendly redirect for logged-in users).
      */
     case UnauthenticatedOnly;
+
+    /**
+     * Never fail-fast: onFailure always returns null, and CsrfMiddleware
+     * marks the request with 'csrf_valid' = false before letting it continue.
+     * Intended for routes whose Action re-renders its own form with error
+     * state, the same way it handles any other validation failure.
+     */
+    case SetAttribute;
 }

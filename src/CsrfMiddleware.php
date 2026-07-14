@@ -19,6 +19,7 @@ final class CsrfMiddleware implements MiddlewareInterface
     private const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS', 'TRACE'];
     private const BODY_FIELD   = '_csrf_token';
     private const HEADER_NAME  = 'X-CSRF-Token';
+    private const VALID_ATTRIBUTE = 'csrf_valid';
 
     public function __construct(
         private readonly TokenGenerator      $generator,
@@ -43,7 +44,7 @@ final class CsrfMiddleware implements MiddlewareInterface
                 return $failureResponse; // API/Web con 403
             }
 
-            return $handler->handle($request);
+            return $handler->handle($request->withAttribute(self::VALID_ATTRIBUTE, false));
         }
 
         try {
@@ -55,7 +56,7 @@ final class CsrfMiddleware implements MiddlewareInterface
                 return $failureResponse; // API/Web con 403
             }
 
-            return $handler->handle($request);
+            return $handler->handle($request->withAttribute(self::VALID_ATTRIBUTE, false));
         }
 
         $request = $this->strategy->onSuccess($request);

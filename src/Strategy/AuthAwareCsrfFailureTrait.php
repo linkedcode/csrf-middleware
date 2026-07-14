@@ -21,7 +21,7 @@ trait AuthAwareCsrfFailureTrait
 {
     private function isNeverFailMode(): bool
     {
-        return $this->failMode === CsrfFailMode::Never;
+        return $this->failMode === CsrfFailMode::Never || $this->failMode === CsrfFailMode::SetAttribute;
     }
 
     /**
