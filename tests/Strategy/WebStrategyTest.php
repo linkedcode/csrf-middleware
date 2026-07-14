@@ -117,4 +117,22 @@ final class WebStrategyTest extends TestCase
 
         $this->assertSame(403, $response->getStatusCode());
     }
+
+    public function testRenderFailureOverridesDefaultResponse(): void
+    {
+        $factory  = new Psr17Factory();
+        $strategy = new WebStrategy(
+            $factory,
+            failMode: CsrfFailMode::Always,
+            renderFailure: fn ($request, $message) => $factory->createResponse(419)
+                ->withHeader('Content-Type', 'text/html')
+                ->withBody(\Nyholm\Psr7\Stream::create("Custom page: {$message}")),
+        );
+        $request = new ServerRequest('POST', '/');
+
+        $response = $strategy->onFailure($request);
+
+        $this->assertSame(419, $response->getStatusCode());
+        $this->assertStringContainsString('Custom page:', (string) $response->getBody());
+    }
 }

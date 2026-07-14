@@ -29,7 +29,11 @@ final class WebStrategy implements CsrfStrategyInterface
      * @param (callable(ServerRequestInterface): ?ResponseInterface)|null $onAuthenticatedFailure
      *        Called when $failMode is UnauthenticatedOnly and $authRequestAttribute
      *        is present/truthy on the request. Falling through to null keeps the
-     *        default 403.
+     *        default failure response below.
+     * @param (callable(ServerRequestInterface, string $message): ResponseInterface)|null $renderFailure
+     *        Overrides how the default (non-delegated) failure response is built —
+     *        e.g. to render the app's own styled error page instead of the bare
+     *        HTML fallback. Receives the failure message.
      */
     public function __construct(
         private readonly ResponseFactoryInterface $responseFactory,
@@ -37,6 +41,7 @@ final class WebStrategy implements CsrfStrategyInterface
         private readonly CsrfFailMode $failMode = CsrfFailMode::Never,
         private readonly string $authRequestAttribute = 'user_id',
         private readonly mixed $onAuthenticatedFailure = null,
+        private readonly mixed $renderFailure = null,
     ) {}
 
     public function onSuccess(ServerRequestInterface $request): ServerRequestInterface
@@ -53,6 +58,10 @@ final class WebStrategy implements CsrfStrategyInterface
         $delegated = $this->delegatedAuthenticatedFailureResponse($request);
         if ($delegated !== null) {
             return $delegated;
+        }
+
+        if ($this->renderFailure !== null) {
+            return ($this->renderFailure)($request, $this->failureMessage);
         }
 
         $response = $this->responseFactory->createResponse(403);
