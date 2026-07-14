@@ -37,7 +37,13 @@ final class CsrfMiddleware implements MiddlewareInterface
         $token = $this->extractToken($request);
 
         if ($token === null) {
-            return $this->strategy->onFailure($request);
+            $failureResponse = $this->strategy->onFailure($request);
+
+            if ($failureResponse !== null) {
+                return $failureResponse; // API/Web con 403
+            }
+
+            return $handler->handle($request);
         }
 
         try {

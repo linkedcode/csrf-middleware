@@ -7,6 +7,7 @@ namespace Linkedcode\Middleware\Csrf\Tests\Middleware;
 use Linkedcode\Middleware\Csrf\CsrfMiddleware;
 use Linkedcode\Middleware\Csrf\Storage\SessionTokenStorage;
 use Linkedcode\Middleware\Csrf\Strategy\ApiStrategy;
+use Linkedcode\Middleware\Csrf\Strategy\CsrfFailMode;
 use Linkedcode\Middleware\Csrf\Strategy\WebStrategy;
 use Linkedcode\Middleware\Csrf\Tests\Fixtures\InMemorySession;
 use Linkedcode\Middleware\Csrf\Token\TokenGenerator;
@@ -203,7 +204,7 @@ final class CsrfMiddlewareTest extends TestCase
         return new CsrfMiddleware(
             $this->generator,
             $this->validator,
-            new WebStrategy($this->factory, failFast: true),
+            new WebStrategy($this->factory, failMode: CsrfFailMode::Always),
         );
     }
 
